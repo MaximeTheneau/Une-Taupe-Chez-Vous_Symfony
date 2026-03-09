@@ -9,6 +9,7 @@ use App\Repository\CommentsRepository;
 use App\Repository\PostsRepository;
 use App\Repository\SubcategoryRepository;
 use App\Repository\KeywordRepository;
+use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -49,7 +50,7 @@ class PostsController extends ApiController
     }
 
     #[Route('&category={name}', name: 'articles', methods: ['GET'])]
-    public function category(PostsRepository $postsRepository, Category $category): JsonResponse
+    public function category(PostsRepository $postsRepository, #[MapEntity(mapping: ['name' => 'name'])] Category $category): JsonResponse
     {
         $posts = $postsRepository->findBy(['category' => $category, 'draft' => false], ['createdAt' => 'DESC']);
 
@@ -68,7 +69,7 @@ class PostsController extends ApiController
     }
 
     #[Route('&subcategory={slug}', name: 'subcategory', methods: ['GET'])]
-    public function subcategory(PostsRepository $postsRepository, Subcategory $subcategory): JsonResponse
+    public function subcategory(PostsRepository $postsRepository, #[MapEntity(mapping: ['slug' => 'slug'])] Subcategory $subcategory): JsonResponse
     {
         $posts = $postsRepository->findBy(['subcategory' => $subcategory, 'draft' => false],  ['createdAt' => 'DESC']);
 
@@ -87,7 +88,7 @@ class PostsController extends ApiController
     }
 
     #[Route('&limit=3&category={name}', name: 'category', methods: ['GET'])]
-    public function limit(PostsRepository $postsRepository, Category $category): JsonResponse
+    public function limit(PostsRepository $postsRepository, #[MapEntity(mapping: ['name' => 'name'])] Category $category): JsonResponse
     {
         $posts = $postsRepository->findBy(['category' => $category, 'draft' => false], ['createdAt' => 'ASC'], 3);
 
@@ -107,10 +108,10 @@ class PostsController extends ApiController
     }
 
     #[Route('&limit=3&filter=desc&category={slug}', name: 'desc', methods: ['GET'])]
-    public function desc(PostsRepository $postsRepository, string $slug ): JsonResponse
+    public function desc(PostsRepository $postsRepository, #[MapEntity(mapping: ['slug' => 'slug'])] Category $category ): JsonResponse
     {
 
-        $posts = $postsRepository->findByCategorySlug($slug, 3);
+        $posts = $postsRepository->findByCategorySlug($category->getSlug(), 3);
 
 
         return $this->json(
