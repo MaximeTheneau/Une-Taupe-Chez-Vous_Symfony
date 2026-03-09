@@ -49,8 +49,8 @@ class PostsController extends ApiController
         );
     }
 
-    #[Route('&category={name}', name: 'articles', methods: ['GET'])]
-    public function category(PostsRepository $postsRepository, #[MapEntity(mapping: ['name' => 'name'])] Category $category): JsonResponse
+    #[Route('&category={slug}', name: 'articles', methods: ['GET'])]
+    public function category(PostsRepository $postsRepository, #[MapEntity(mapping: ['slug' => 'slug'])] Category $category): JsonResponse
     {
         $posts = $postsRepository->findBy(['category' => $category, 'draft' => false], ['createdAt' => 'DESC']);
 
@@ -87,8 +87,8 @@ class PostsController extends ApiController
         );
     }
 
-    #[Route('&limit=3&category={name}', name: 'category', methods: ['GET'])]
-    public function limit(PostsRepository $postsRepository, #[MapEntity(mapping: ['name' => 'name'])] Category $category): JsonResponse
+    #[Route('&limit=3&category={slug}', name: 'category', methods: ['GET'])]
+    public function limit(PostsRepository $postsRepository, #[MapEntity(mapping: ['slug' => 'slug'])] Category $category): JsonResponse
     {
         $posts = $postsRepository->findBy(['category' => $category, 'draft' => false], ['createdAt' => 'ASC'], 3);
 
