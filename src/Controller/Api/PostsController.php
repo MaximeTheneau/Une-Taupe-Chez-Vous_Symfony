@@ -69,7 +69,7 @@ class PostsController extends ApiController
     }
 
     #[Route('&subcategory={slug}', name: 'subcategory', methods: ['GET'])]
-    public function subcategory(PostsRepository $postsRepository, #[MapEntity(mapping: ['slug' => 'slug'])] Subcategory $subcategory): JsonResponse
+    public function subcategory(PostsRepository $postsRepository, Subcategory $subcategory): JsonResponse
     {
         $posts = $postsRepository->findBy(['subcategory' => $subcategory, 'draft' => false],  ['createdAt' => 'DESC']);
 
@@ -87,8 +87,8 @@ class PostsController extends ApiController
         );
     }
 
-    #[Route('&limit=3&category={slug}', name: 'category', methods: ['GET'])]
-    public function limit(PostsRepository $postsRepository, #[MapEntity(mapping: ['slug' => 'slug'])] Category $category): JsonResponse
+    #[Route('&limit=3&category={name}', name: 'category', methods: ['GET'])]
+    public function limit(PostsRepository $postsRepository, Category $category): JsonResponse
     {
         $posts = $postsRepository->findBy(['category' => $category, 'draft' => false], ['createdAt' => 'ASC'], 3);
 
@@ -108,10 +108,10 @@ class PostsController extends ApiController
     }
 
     #[Route('&limit=3&filter=desc&category={slug}', name: 'desc', methods: ['GET'])]
-    public function desc(PostsRepository $postsRepository, #[MapEntity(mapping: ['slug' => 'slug'])] Category $category ): JsonResponse
+    public function desc(PostsRepository $postsRepository, string $slug ): JsonResponse
     {
 
-        $posts = $postsRepository->findByCategorySlug($category->getSlug(), 3);
+        $posts = $postsRepository->findByCategorySlug($slug, 3);
 
 
         return $this->json(
