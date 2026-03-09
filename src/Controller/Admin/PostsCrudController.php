@@ -374,6 +374,9 @@ class PostsCrudController extends AbstractCrudController
                 $subcategoryLink = $articleLink->getSubcategory() ? $articleLink->getSubcategory()->getSlug() : null;
                 $paragraph->setLink('/' . $categoryLink . '/' . $subcategoryLink . '/' . $slugLink);
             }
+        } else {
+            $paragraph->setLink(null);
+            $paragraph->setLinkSubtitle(null);
         }
     }
 
