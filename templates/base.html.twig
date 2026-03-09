@@ -8,13 +8,12 @@
         <title>Backoffice Theneau Maxime</title>
         
         <link rel="icon" href="{{ asset('favicon.png') }}">
-
+{# 
         {% block stylesheets %}
-            {{ encore_entry_link_tags('app') }}
-        {% endblock %}
+        {% endblock %} #}
 
         {% block javascripts %}
-            {{ encore_entry_script_tags('app') }}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
         {% endblock %}
     </head>
     <body>

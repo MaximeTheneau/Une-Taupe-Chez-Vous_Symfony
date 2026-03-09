@@ -8,7 +8,7 @@ use App\Repository\SubcategoryRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[Route('/subcategory')]
@@ -22,7 +22,7 @@ class SubcategoryController extends AbstractController
     {
         $this->slugger = $slugger;
     }
-    
+
     #[Route('/', name: 'app_back_subcategory_index', methods: ['GET'])]
     public function index(SubcategoryRepository $subcategoryRepository): Response
     {
@@ -40,7 +40,7 @@ class SubcategoryController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
 
-            // Create slug 
+            // Create slug
             if(empty($subcategory->getSlug())) {
                 $slug = $this->slugger->slug($subcategory->getName());
                 $subcategory->setSlug($slug);
@@ -72,12 +72,12 @@ class SubcategoryController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            
-            // Create slug 
+
+            // Create slug
             if( $subcategory->getName() !== $form->get('name')->getData() ) {
                 $slug = $this->slugger->slug($subcategory->getName());
                 $subcategory->setSlug($slug);
-            } 
+            }
             // Empty slug
             if(empty($subcategory->getSlug())) {
                 $slug = $this->slugger->slug($subcategory->getName());

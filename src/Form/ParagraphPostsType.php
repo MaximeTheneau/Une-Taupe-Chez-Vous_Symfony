@@ -55,17 +55,17 @@ class ParagraphPostsType extends AbstractType
                             'placeholder' => 'max 5Mo',
                             'class' => 'block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500',
                         ],
-                'constraints' => [
-                    new File([
-                        'maxSize' => '5M',
-                        'mimeTypes' => [
-                            'image/jpeg',
-                            'image/webp',
-                            'image/png',
-                        ],
-                        'mimeTypesMessage' => 'Veuillez uploader une image valide', 
-                    ])
-                ],
+                // 'constraints' => [
+                //     new File([
+                //         'maxSize' => '5M',
+                //         'mimeTypes' => [
+                //             'image/jpeg',
+                //             'image/webp',
+                //             'image/png',
+                //         ],
+                //         'mimeTypesMessage' => 'Veuillez uploader une image valide',
+                //     ])
+                // ],
             ],)
             ->add('altImg', TextType::class, [
                     'label' => false,
@@ -76,7 +76,7 @@ class ParagraphPostsType extends AbstractType
                         'maxlength' => '165',
                     ]
                 ])
-            
+
             ->add('linkSubtitle', TextType::class, [
                     'label' => 'Sous-titre du lien',
                     'required' => false,
@@ -100,7 +100,7 @@ class ParagraphPostsType extends AbstractType
             ->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $e) {
                 $form = $e->getForm();
                 $recipe = $e->getData();
-            
+
                 if ($recipe && $recipe->getId()) {
                     $form->add('deleteLink', ChoiceType::class, [
                         'mapped' => false,
@@ -122,5 +122,5 @@ class ParagraphPostsType extends AbstractType
             'data_class' => ParagraphPosts::class,
         ]);
     }
-    
+
 }

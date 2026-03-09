@@ -113,17 +113,17 @@ class PostsType extends AbstractType
                     'class' => 'block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500',
                     'id' => 'image',
                 ],
-                'constraints' => [
-                    new File([
-                        'maxSize' => '5M',
-                        'mimeTypes' => [
-                            'image/jpeg',
-                            'image/webp',
-                            'image/png',
-                        ],
-                        'mimeTypesMessage' => 'Veuillez uploader une image valide', 
-                    ])
-                ],
+                // 'constraints' => [
+                //     new File([
+                //         'maxSize' => '5M',
+                //         'mimeTypes' => [
+                //             'image/jpeg',
+                //             'image/webp',
+                //             'image/png',
+                //         ],
+                //         'mimeTypesMessage' => 'Veuillez uploader une image valide',
+                //     ])
+                // ],
             ],)
             ->add('altImg', TextType::class, [
                 'label' => 'Texte alternatif de l\'image',
@@ -189,7 +189,7 @@ class PostsType extends AbstractType
                                     ->where('p.draft IS NULL OR p.draft = false');
                             },
 
-                        
+
                     ])
             ;
                 $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
@@ -197,7 +197,7 @@ class PostsType extends AbstractType
                     $listPosts = $event->getData()->getParagraphPosts();
                 });
     }
-    
+
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([

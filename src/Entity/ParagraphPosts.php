@@ -6,7 +6,7 @@ use App\Repository\ParagraphPostsRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 
 #[ORM\Entity(repositoryClass: ParagraphPostsRepository::class)]
@@ -49,7 +49,8 @@ class ParagraphPosts
     #[Groups(['api_posts_read', 'api_posts_home'])]
     private ?string $linkSubtitle = null;
 
-    #[ORM\ManyTone(targetEntity: Posts::class)]
+    #[ORM\ManyToOne(targetEntity: Posts::class)]
+    #[ORM\JoinColumn(nullable: true)]
     private $linkPostSelect;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -70,7 +71,12 @@ class ParagraphPosts
     #[ORM\Column(type: 'text', nullable: true)]
     #[Groups(['api_posts_read'])]
     private ?string $srcset = null;
-    
+
+    public function __toString(): string
+    {
+        return $this->subtitle ?? '';
+    }
+
     public function getId(): ?int
     {
         return $this->id;

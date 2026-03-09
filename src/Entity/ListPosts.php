@@ -4,7 +4,7 @@ namespace App\Entity;
 
 use App\Repository\ListPostsRepository;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: ListPostsRepository::class)]
 #[ApiResource]
@@ -35,8 +35,14 @@ class ListPosts
     #[Groups(['api_posts_read'])]
     private ?string $linkSubtitle = null;
 
-    #[ORM\ManyTone(targetEntity: Posts::class)]
+    #[ORM\ManyToOne(targetEntity: Posts::class)]
+    #[ORM\JoinColumn(nullable: true)]
     private $linkPostSelect;
+
+    public function __toString(): string
+    {
+        return $this->title ?? '';
+    }
 
     public function getId(): ?int
     {

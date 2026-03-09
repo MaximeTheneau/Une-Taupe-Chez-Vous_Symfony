@@ -6,7 +6,7 @@ use App\Repository\CommentsRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: CommentsRepository::class)]
 class Comments
@@ -42,7 +42,12 @@ class Comments
     #[ORM\ManyToOne(inversedBy: 'replies', targetEntity: 'Comments')]
     #[ORM\JoinColumn(name: 'parent_id', referencedColumnName: 'id', nullable: true)]
     private $parent;
-    
+
+    public function __toString(): string
+    {
+        return ($this->User ?? '') . ' — ' . substr($this->comment ?? '', 0, 50);
+    }
+
     #[ORM\OneToMany(targetEntity: Comments::class , mappedBy: 'parent', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Groups(['api_posts_read'])]
     private $replies;

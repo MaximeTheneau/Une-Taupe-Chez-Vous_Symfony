@@ -7,7 +7,7 @@ use Imagine\Image\Box;
 
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,7 +22,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[Route('/api/pest-identification')]
 class PestIdentificationController extends ApiController
-{    
+{
     private $tokenService;
     private $serializer;
     private $imagine;
@@ -36,7 +36,7 @@ class PestIdentificationController extends ApiController
         $this->imagine = new Imagine();
 
     }
-	
+
     #[Route('', name: '', methods: ['POST'])]
     public function add(Request $request, MailerInterface $mailer): JsonResponse
     {
@@ -45,10 +45,10 @@ class PestIdentificationController extends ApiController
     $data = $request->request->all();
     try {
         $uploadedFile = $request->files->get('image');
-        
+
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
         $fileExtension = $uploadedFile->getClientOriginalExtension();
-        
+
         if (!in_array(strtolower($fileExtension), $allowedExtensions)) {
             return $this->json(
                 [
@@ -64,24 +64,24 @@ class PestIdentificationController extends ApiController
                 "code_error" => Response::HTTP_BAD_REQUEST
             ], Response::HTTP_BAD_REQUEST);
         }
-        
+
         if ($uploadedFile ) {
             $uploadDir = $this->getParameter('app.imgDir');
             $filePath = $uploadDir . '/' . uniqid() . '.' . $uploadedFile->getClientOriginalExtension();
-            
+
             $uploadedFile->move($uploadDir, basename($filePath));
 
             $img = $this->imagine->open($filePath);
-            
+
             $img->resize(new Box(750, 750));
 
             $img->save($filePath, ['webp_quality' => 80]);
 
             $imageData = file_get_contents($filePath);
             $base64Image = base64_encode($imageData);
-            
+
             unlink($filePath);
-            
+
         } else {
             return $this->json(
             [
@@ -91,7 +91,7 @@ class PestIdentificationController extends ApiController
             Response::HTTP_FORBIDDEN
         );
     }
-    
+
     if (strlen($data['type']) <= 2) {
         return $this->json(
             [
@@ -135,7 +135,7 @@ class PestIdentificationController extends ApiController
     if (isset($data['choices']) && count($data['choices']) > 0) {
 
         $content = $data['choices'][0]['message']['content'];
-        
+
         sleep(5);
 
         return $this->json([
@@ -167,5 +167,5 @@ class PestIdentificationController extends ApiController
         );
     }
 }
-            
+
 }

@@ -7,17 +7,12 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use ApiPlatform\Core\Annotation\ApiFilter;
-use ApiPlatform\Core\Annotation\ApiResource;
-use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\SearchFilter;
-use Symfony\Component\Serializer\Annotation\Groups;
-use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 
 #[ORM\Entity(repositoryClass: PostsRepository::class)]
-#[ApiRessource(
-    normalizationContext: ['groups' => ['api_posts_keyword']],
-)]
+#[Groups(['api_posts_keyword' ])]
 class Posts
 {
     #[ORM\Id]
@@ -29,7 +24,7 @@ class Posts
     #[ORM\Column(length: 70)]
     #[Groups(['api_posts_read', 'api_posts_home'])]
     private ?string $heading = null;
-    
+
     #[ORM\Column(length: 70, unique: true, type: Types::STRING)]
     #[Groups(['api_posts_home', 'api_posts_read', 'api_posts_desc', 'api_posts_category', 'api_posts_subcategory', 'api_posts_articles_desc', 'api_posts_all', 'api_posts_keyword' ])]
     private ?string $title = null;
@@ -37,11 +32,11 @@ class Posts
     #[ORM\Column(length: 1000)]
     #[Groups(['api_posts_read', 'api_posts_home', 'api_posts_category'])]
     private ?string $metaDescription = null;
-    
+
     #[ORM\Column(length: 70, unique: true, type: Types::STRING)]
     #[Groups(['api_posts_home', 'api_posts_read', 'api_posts_desc', 'api_posts_category', 'api_posts_subcategory', 'api_posts_all', 'api_posts_keyword', 'api_posts_sitemap' ])]
     private ?string $slug = null;
-    
+
     #[ORM\Column(length: 5000, nullable: true, type: Types::STRING)]
     #[Groups(['api_posts_read', 'api_posts_home'])]
     private ?string $contents = null;
@@ -57,7 +52,7 @@ class Posts
     #[ORM\Column(length: 255)]
     #[Groups(['api_posts_read' ])]
     private ?string $formattedDate = null;
-    
+
     #[ORM\OneToMany(mappedBy: 'posts', targetEntity: ListPosts::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Groups(['api_posts_read', 'api_posts_home' ])]
     private Collection $listPosts;
@@ -83,6 +78,9 @@ class Posts
     #[ORM\Column(length: 500, nullable: true)]
     #[Groups(['api_posts_read', 'api_posts_all',  'api_posts_desc', 'api_posts_subcategory', 'api_posts_category', 'api_posts_keyword', 'api_posts_sitemap', 'api_posts_home' ])]
     private ?string $imgPost = null;
+
+    private ?File $imageFile = null;
+    private bool $deleteImage = false;
 
     #[ORM\ManyToOne(inversedBy: 'posts')]
     #[Groups(['api_posts_all', 'api_posts_category', 'api_posts_desc', 'api_posts_subcategory', 'api_posts_read', 'api_posts_keyword'])]
@@ -129,6 +127,11 @@ class Posts
     #[ORM\ManyToMany(targetEntity: self::class, mappedBy: 'relatedPosts')]
     private Collection $posts;
 
+    public function __toString(): string
+    {
+        return $this->title ?? '';
+    }
+
     public function __construct()
     {
         $this->listPosts = new ArrayCollection();
@@ -143,7 +146,7 @@ class Posts
     {
         return $this->id;
     }
-    
+
 
     public function getTitle(): ?string
     {
@@ -325,6 +328,18 @@ class Posts
 
         return $this;
     }
+
+
+    public function getImageFile(): ?File { return $this->imageFile; }
+    public function setImageFile(?File $file): static { $this->imageFile = $file; return $this; }
+
+    public function isDeleteImage(): bool { return $this->deleteImage; }
+    public function setDeleteImage(bool $v): static { $this->deleteImage = $v; return $this; }
+
+    // Aliases pour ImageOptimizer::setPicture() qui utilise getImg()/setImg()
+    public function getImg(): ?string { return $this->imgPost; }
+    public function setImg(?string $url): static { $this->imgPost = $url; return $this; }
+
 
     public function getSubcategory(): ?Subcategory
     {

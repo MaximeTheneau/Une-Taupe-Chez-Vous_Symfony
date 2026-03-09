@@ -6,20 +6,17 @@
 parameters:
     app.projectDir : '%env(resolve:APP_PROJECTDIR)%'
     app.imgDir : '%env(resolve:IMG_DIR)%'
-    app.domain : '%env(resolve:DOMAIN)%'
     app.domain.img : '%env(resolve:DOMAIN_IMG)%'
-    app.authToken : '%env(resolve:APP_AUTHTOKEN)%'
+
 
     amazon.s3.key:     '%env(resolve:AWS_KEY)%'
     amazon.s3.secret:  '%env(resolve:AWS_SECRET)%'
     amazon.s3.region:  '%env(resolve:AWS_REGION)%'
     amazon.s3.bucket:  '%env(resolve:AWS_BUCKET)%'
     amazon.s3.version: '%env(resolve:AWS_VERSION)%'
-
+        
     #CloudFront
     amazon.s3.bucket.front:  '%env(resolve:AWS_BUCKET_FRONT)%'
-
-
 
 
 services:
@@ -38,3 +35,11 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+    App\Controller\Admin\PostsCrudController:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Controller\Admin\ParagraphPostsCrudController:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+

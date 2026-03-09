@@ -11,7 +11,7 @@ use App\Repository\SubcategoryRepository;
 use App\Repository\KeywordRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -22,7 +22,7 @@ class PostsController extends ApiController
     #[Route('/home', name: 'home', methods: ['GET'])]
     public function home(PostsRepository $postsRepository, EntityManagerInterface $em ): JsonResponse
     {
-    
+
         $home = $postsRepository->findBy(['slug' => 'Accueil']);
         $interventions = $postsRepository->findByCategorySlug('Interventions', 3);
         $testimonials = $postsRepository->findBy(['slug' => 'Temoignages']);
@@ -40,7 +40,7 @@ class PostsController extends ApiController
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_home"
                 ]
@@ -58,7 +58,7 @@ class PostsController extends ApiController
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_category"
 
@@ -77,7 +77,7 @@ class PostsController extends ApiController
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_subcategory"
 
@@ -97,7 +97,7 @@ class PostsController extends ApiController
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_category"
 
@@ -105,7 +105,7 @@ class PostsController extends ApiController
             ]
         );
     }
-        
+
     #[Route('&limit=3&filter=desc&category={slug}', name: 'desc', methods: ['GET'])]
     public function desc(PostsRepository $postsRepository, string $slug ): JsonResponse
     {
@@ -118,7 +118,7 @@ class PostsController extends ApiController
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_desc"
                 ]
@@ -129,7 +129,7 @@ class PostsController extends ApiController
     #[Route('/all', name: 'all', methods: ['GET'])]
     public function all(PostsRepository $postsRepository ): JsonResponse
     {
-    
+
         $allPosts = $postsRepository->findAllPosts();
 
 
@@ -138,7 +138,7 @@ class PostsController extends ApiController
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_all"
                 ]
@@ -149,17 +149,17 @@ class PostsController extends ApiController
     #[Route('/sitemap', name: 'sitemap', methods: ['GET'])]
     public function sitemap(PostsRepository $postsRepository ): JsonResponse
     {
-    
+
         $excludeSlugs = ['search'];
 
         $allPosts = $postsRepository->findAllPostsExcludingSlugs($excludeSlugs);
-    
+
         return $this->json(
             $allPosts,
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_sitemap"
                 ]
@@ -170,7 +170,7 @@ class PostsController extends ApiController
     #[Route('/thumbnail/{slug}', name: 'thumbnail', methods: ['GET'])]
     public function thumbnail(PostsRepository $postsRepository, Posts $posts = null ): JsonResponse
     {
-    
+
         if ($posts === null)
         {
             // on renvoie donc une 404
@@ -188,7 +188,7 @@ class PostsController extends ApiController
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_thumbnail"
                 ]
@@ -198,8 +198,8 @@ class PostsController extends ApiController
 
     #[Route('/{slug}', name: 'read', methods: ['GET'])]
     public function read(EntityManagerInterface $em, string $slug)
-    { 
-        
+    {
+
         $post = $em->getRepository(Posts::class)->findOneBy(['slug' => $slug]);
 
         return $this->json(
@@ -207,7 +207,7 @@ class PostsController extends ApiController
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_read"
                 ]
@@ -216,13 +216,13 @@ class PostsController extends ApiController
 
      #[Route('/blog/{slug}', name: 'readBlog', methods: ['GET'])]
     public function readArticles(EntityManagerInterface $em, Posts $post, CommentsRepository $commentRepository)
-    { 
+    {
         $comments = $commentRepository->findNonReplyComments($post->getId());
 
         $commentsCollection = new ArrayCollection($comments);
 
         $post->setComments($commentsCollection);
-        
+
         if ($post === null)
         {
             // on renvoie donc une 404
@@ -272,7 +272,7 @@ class PostsController extends ApiController
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_read",
                 ]
@@ -283,7 +283,7 @@ class PostsController extends ApiController
     #[Route('&filter=subcategory', name: 'allSubcategory', methods: ['GET'])]
     public function allSubcategory(SubcategoryRepository $subcategories ): JsonResponse
     {
-    
+
         $subcategories = $subcategories->findAll();
 
         return $this->json(
@@ -302,7 +302,7 @@ class PostsController extends ApiController
         $responsePosts = [];
 
         $post = $postsRepository->find($id);
-        
+
         $postId = $post->getId();
         $postsKeyword = $post->getKeywords()->getValues();
         if($postsKeyword === [])
@@ -313,7 +313,7 @@ class PostsController extends ApiController
                 Response::HTTP_OK,
                 [],
                 [
-                    "groups" => 
+                    "groups" =>
                     [
                         "api_posts_keyword"
                     ]
@@ -326,14 +326,14 @@ class PostsController extends ApiController
             $filteredPostId = $postsKeyword->filter(function ($otherPost) use ($postId) {
                 return $otherPost->getId() != $postId && !$otherPost->isDraft() && $otherPost->getSlug() !== 'Accueil';
             });
-            
+
             foreach ($filteredPostId as $filteredPost) {
                 $filteredPosts[] = $filteredPost;
             }
         }
-        
-        $sortedPosts = $filteredPosts; 
-        
+
+        $sortedPosts = $filteredPosts;
+
         usort($sortedPosts, function ($a, $b) {
             $updatedAtA = $a->getUpdatedAt();
             $updatedAtB = $b->getUpdatedAt();
@@ -350,7 +350,7 @@ class PostsController extends ApiController
                 return $createdAtB <=> $createdAtA;
             }
         });
-        
+
         if (count($sortedPosts) > 3) {
             $responsePosts = array_slice($sortedPosts, 0, 3);
         } else {
@@ -362,14 +362,14 @@ class PostsController extends ApiController
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_keyword"
                 ]
             ]
         );
     }
-   
+
 #[Route('/related/{slug}', name: 'related', methods: ['GET'])]
     public function relatedPosts(EntityManagerInterface $em, string $slug )
     {
@@ -408,7 +408,7 @@ class PostsController extends ApiController
             Response::HTTP_OK,
             [],
             [
-                "groups" => 
+                "groups" =>
                 [
                     "api_posts_related",
                 ]

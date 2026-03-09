@@ -8,7 +8,7 @@ use App\Repository\CategoryRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
 
@@ -24,7 +24,7 @@ class CategoryController extends AbstractController
     {
         $this->slugger = $slugger;
     }
-    
+
 
     #[Route('/', name: 'app_back_category_index', methods: ['GET'])]
     public function index(CategoryRepository $categoryRepository): Response
@@ -42,10 +42,10 @@ class CategoryController extends AbstractController
         $form = $this->createForm(CategoryType::class, $category);
         $form->handleRequest($request);
 
-        
+
         if ($form->isSubmitted() && $form->isValid()) {
-            
-            // Create slug 
+
+            // Create slug
             if(empty($category->getSlug())) {
                 $slug = $this->slugger->slug($category->getName());
                 $category->setSlug($slug);
@@ -74,14 +74,14 @@ class CategoryController extends AbstractController
     {
         $orginalCategorySlug = $category->getSlug();
         $orginalCategoryName = $category->getName();
-        
-        
+
+
         $form = $this->createForm(CategoryType::class, $category);
         $form->handleRequest($request);
-        
+
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Create slug 
+            // Create slug
             if($orginalCategorySlug && $orginalCategoryName !== $form->get('name')->getData() ) {
                 $slug = $this->slugger->slug($category->getName());
                 $category->setSlug($slug);
@@ -91,8 +91,8 @@ class CategoryController extends AbstractController
             if(empty($category->getSlug())) {
                 $slug = $this->slugger->slug($category->getName());
                 $category->setSlug($slug);
-            }            
-            
+            }
+
 
             $categoryRepository->save($category, true);
             return $this->redirectToRoute('app_back_category_index', [], Response::HTTP_SEE_OTHER);

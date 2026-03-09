@@ -6,7 +6,8 @@ use App\Repository\SubcategoryRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
+use App\Entity\Category;
 
 #[ORM\Entity(repositoryClass: SubcategoryRepository::class)]
 class Subcategory
@@ -27,9 +28,17 @@ class Subcategory
     #[ORM\OneToMany(mappedBy: 'subcategory', targetEntity: Posts::class)]
     private Collection $posts;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Category $category = null;
+
+    public function __toString(): string
+    {
+        return $this->name ?? '';
+    }
+
     public function __construct()
     {
-        $this->articles = new ArrayCollection();
         $this->posts = new ArrayCollection();
     }
 
@@ -74,16 +83,9 @@ class Subcategory
         return $this;
     }
 
-    public function getPosts(): ?Posts
+    public function getPosts(): Collection
     {
         return $this->posts;
-    }
-
-    public function setPosts(?Posts $posts): self
-    {
-        $this->posts = $posts;
-
-        return $this;
     }
 
     public function addPost(Posts $post): self
