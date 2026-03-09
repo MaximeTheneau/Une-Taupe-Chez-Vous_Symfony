@@ -4,27 +4,28 @@ namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\Email;
 use Symfony\Component\HttpFoundation\Request;
 
 class SecurityController extends AbstractController
 {
-    private $mailer;
-
-    public function __construct(MailerInterface $mailer)
+    #[Route(path: '/', name: 'app_home')]
+    public function home(): Response
     {
-        $this->mailer = $mailer;
+        if ($this->getUser()) {
+            return $this->redirectToRoute('admin');
+        }
+
+        return $this->redirectToRoute('app_login');
     }
 
     #[Route(path: '/login', name: 'app_login')]
     public function login(Request $request, AuthenticationUtils $authenticationUtils): Response
     {
-        // if ($this->getUser()) {
-        //     return $this->redirectToRoute('target_path');
-        // }
+        if ($this->getUser()) {
+            return $this->redirectToRoute('admin');
+        }
 
         // get the login error if there is one
         $error = $authenticationUtils->getLastAuthenticationError();

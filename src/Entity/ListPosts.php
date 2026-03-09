@@ -35,8 +35,14 @@ class ListPosts
     #[Groups(['api_posts_read'])]
     private ?string $linkSubtitle = null;
 
-    #[ORM\ManyTone(targetEntity: Posts::class)]
+    #[ORM\ManyToOne(targetEntity: Posts::class)]
+    #[ORM\JoinColumn(nullable: true)]
     private $linkPostSelect;
+
+    public function __toString(): string
+    {
+        return $this->title ?? '';
+    }
 
     public function getId(): ?int
     {

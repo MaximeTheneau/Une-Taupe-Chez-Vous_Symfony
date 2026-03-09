@@ -16,6 +16,10 @@ return [
         'path' => './assets/app.js',
         'entrypoint' => true,
     ],
+    'trix-upload' => [
+        'path' => './assets/js/trix-upload.js',
+        'entrypoint' => true,
+    ],
     'ckeditor-init' => [
         'path' => './assets/js/ckeditor/ckeditor-init.js',
         'entrypoint' => true,

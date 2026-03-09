@@ -1,0 +1,7 @@
+{% if field.value and field.value starts with 'http' %}
+    <img src="{{ field.value }}" alt="" style="max-height: 50px; max-width: 100px;">
+{% elseif field.value %}
+    {{ field.value }}
+{% else %}
+    -
+{% endif %}

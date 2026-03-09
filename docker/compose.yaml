@@ -1,0 +1,57 @@
+##
+## Dev — auto-chargé par docker compose (sans -f explicite)
+## Services : app (php -S) + mailhog
+##
+
+services:
+  ###> doctrine/doctrine-bundle ###
+  database:
+    image: mysql:${MYSQL_VERSION:-8.0}
+    container_name: database-taupe
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me_root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-taupe}
+      MYSQL_USER: ${MYSQL_USER:-app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_me}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    networks:
+      - symfony-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-app}", "-p${MYSQL_PASSWORD:-change_me}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  ###< doctrine/doctrine-bundle ###
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/php/Dockerfile
+    container_name: app-taupe
+    working_dir: /srv/app
+    command: ["php", "-S", "0.0.0.0:8000", "-t", "public"]
+    volumes:
+      - ..:/srv/app:rw,cached
+    ports:
+      - "${HTTP_PORT:-8000}:8000"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - symfony-net
+      
+  ###> symfony/mailer ###
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog-taupe
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_UI_PORT:-8025}:8025"
+    networks:
+      - symfony-net
+  ###< symfony/mailer ###
+
+networks:
+  symfony-net:
+    driver: bridge

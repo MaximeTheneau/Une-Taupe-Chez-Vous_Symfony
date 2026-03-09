@@ -49,7 +49,8 @@ class ParagraphPosts
     #[Groups(['api_posts_read', 'api_posts_home'])]
     private ?string $linkSubtitle = null;
 
-    #[ORM\ManyTone(targetEntity: Posts::class)]
+    #[ORM\ManyToOne(targetEntity: Posts::class)]
+    #[ORM\JoinColumn(nullable: true)]
     private $linkPostSelect;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -71,6 +72,11 @@ class ParagraphPosts
     #[Groups(['api_posts_read'])]
     private ?string $srcset = null;
     
+    public function __toString(): string
+    {
+        return $this->subtitle ?? '';
+    }
+
     public function getId(): ?int
     {
         return $this->id;

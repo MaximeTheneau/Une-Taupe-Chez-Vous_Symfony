@@ -11,21 +11,16 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\NamedAddress;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Component\Validator\Constraints as Assert;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Lexik\Bundle\JWTAuthenticationBundle\Security\Authentication\Token\JWTUserToken;
-use DateTime;
 
 #[Route('/api/comments')]
 class CommentsController extends ApiController
@@ -37,8 +32,8 @@ class CommentsController extends ApiController
 
     public function __construct(
         UserPasswordHasherInterface $passwordHasher,
-        EntityManagerInterface $entityManager, 
-        JWTTokenManagerInterface $jwtManager, 
+        EntityManagerInterface $entityManager,
+        JWTTokenManagerInterface $jwtManager,
         TokenStorageInterface $tokenStorage,
     )
     {
@@ -50,9 +45,9 @@ class CommentsController extends ApiController
 
     #[Route('', name: 'add_comments', methods: ['POST'])]
     public function add(Request $request, MailerInterface $mailer, PostsRepository $postsRepository): JsonResponse
-    {   
-        
-        
+    {
+
+
         $content = $request->getContent();
 
         $cookie = $request->cookies->get('jwt');
@@ -66,7 +61,7 @@ class CommentsController extends ApiController
         if (!$cookie && !$user) {
             return new JsonResponse(['message' => 'Une erreur est survenue lors du traitement de votre demande. Veuillez réessayer ultérieurement.'], 400);
         }
-        
+
 
 
 
@@ -76,15 +71,15 @@ class CommentsController extends ApiController
             $data = json_decode($content, true);
 
             $post = $postsRepository->findOneBy(['id' => $data['posts']]);
-    
+
             $comment = new Comments();
-            $comment->setUser($data['user']); 
-            $comment->setEmail($data['email']); 
-            $comment->setComment($data['comment']); 
+            $comment->setUser($data['user']);
+            $comment->setEmail($data['email']);
+            $comment->setComment($data['comment']);
             $comment->setAccepted(false);
             $comment->setCreatedAt(new \DateTimeImmutable());
-            $post->addComment($comment); 
-    
+            $post->addComment($comment);
+
             $this->entityManager->persist($post);
             $this->entityManager->persist($comment);
             $this->entityManager->flush();
@@ -164,7 +159,7 @@ class CommentsController extends ApiController
 
             $this->entityManager->persist($comment);
             $this->entityManager->flush();
-        
+
 
             return $this->json(
                 [
@@ -175,7 +170,7 @@ class CommentsController extends ApiController
                 Response::HTTP_OK,
             );
 
-        } 
+        }
 
     }
 
@@ -186,16 +181,16 @@ class CommentsController extends ApiController
 
     try {
         $urlAPI = 'https://api.mailcheck.ai/email/' . $email;
-    
+
         $reponse = $httpClient->request('GET', $urlAPI);
         $donnees = $reponse->toArray();
-        
+
         $existingUser = $entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
-                
+
         if ($existingUser) {
-    
+
             $token = $this->jwtManager->create($existingUser);
-            $date = time() + (3600 * 24 * 365); 
+            $date = time() + (3600 * 24 * 365);
 
             $cookie = new Cookie(
                 'jwt',
@@ -208,23 +203,23 @@ class CommentsController extends ApiController
                 // false,  // Désactivez l'option HttpOnly pour permettre l'accès via JavaScript
                 // 'lax',
             );
-    
+
             $response = new JsonResponse(['message' => true]);
             $response->headers->set('Content-Type', 'application/json');
-            
+
             $response->headers->setCookie($cookie);
-            
+
             return $response;
-    
+
         }
 
         if ($donnees['disposable']) {
             return new JsonResponse(['message' => 'L\'e-mail est jetable et n\'est pas accepté.'], 400);
-        } 
+        }
 
         if (!$donnees['mx'] ) {
             return new JsonResponse(['message' => 'L\'e-mail est invalide.'], 400);
-        } 
+        }
         if (!$existingUser) {
 
             $currentDate = new \DateTimeImmutable();
@@ -250,13 +245,13 @@ class CommentsController extends ApiController
 
 
             $response = new JsonResponse(['message' => true]);
-        
+
             $response->headers->setCookie($cookie);
-            
+
             return $response;
-            
+
         }
-    
+
     } catch (\Exception $e) {
         return new JsonResponse(['message' => 'Veuillez vérifier l\'adresse e-mail fournie.'], 400);
     }

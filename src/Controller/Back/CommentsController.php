@@ -9,7 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 
@@ -107,24 +107,24 @@ class CommentsController extends AbstractController
     public function replyToComment(Request $request, Comments $comment, EntityManagerInterface $entityManager, MailerInterface $mailer): Response
     {
 
-        $reply = new Comments(); 
+        $reply = new Comments();
 
-        $form = $this->createForm(CommentsType::class, $reply); 
+        $form = $this->createForm(CommentsType::class, $reply);
 
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $reply->setParent($comment);
-            
+
             $reply->setCreatedAt(new \DateTimeImmutable());
             $reply->setAccepted(true);
-            
+
             $articleComment = $comment->getPosts();
-           
+
             $reply->setPosts($articleComment);
 
             $entityManager->persist($reply);
             $entityManager->flush();
-            
+
             $userComment = $reply->getParent();
 
             $email = (new TemplatedEmail())

@@ -4,22 +4,19 @@ namespace App\Controller\Api;
 
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\String\Slugger\SluggerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\NamedAddress;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Validator\Constraints as Assert;
 
 
 #[Route('/api/contact')]
 class ContactController extends ApiController
-{    
+{
     private $tokenService;
     private $serializer;
 
@@ -30,7 +27,7 @@ class ContactController extends ApiController
         $this->tokenService = $token;
         $this->serializer = $serializer;
     }
-	
+
     #[Route('', name: 'add_contact', methods: ['POST'])]
     public function add(Request $request, MailerInterface $mailer): JsonResponse
     {
@@ -109,7 +106,7 @@ class ContactController extends ApiController
             ]);
 
             $mailer->send($emailReturn);
-            
+
         }
 
         if ($data['subject'] === 'Webmaster'  ) {
@@ -141,10 +138,10 @@ class ContactController extends ApiController
                 'surfaceContact' => $data['surface'] ?? null ,
                 'interventionContact' => $data['intervention'] ?? null,
                 'interventionOtherContact' => $data['interventionOther'] ?? null,
-                
+
             ])
             ->replyTo($data['email']);
-        
+
 
         $mailer->send($email);
 
@@ -154,7 +151,7 @@ class ContactController extends ApiController
             ],
             Response::HTTP_OK,
         );
-                
+
         }
     catch (\Exception $e) {
         $email = (new TemplatedEmail())
@@ -177,7 +174,7 @@ class ContactController extends ApiController
         );
     }
     }
-            
+
     #[Route('&directory', name: 'add_contact_directory', methods: ['POST'])]
     public function addDirectory(Request $request, MailerInterface $mailer, ValidatorInterface $validator): JsonResponse
     {
@@ -225,7 +222,7 @@ class ContactController extends ApiController
             Response::HTTP_BAD_REQUEST, // 400
         );
     }
-    
+
     if ($data['subject'] === 'Webmaster') {
         $data['subject'] = 'Demande de contact webmaster';
         $emailTo = $_ENV['MAILER_TO_WEBMASTER'];

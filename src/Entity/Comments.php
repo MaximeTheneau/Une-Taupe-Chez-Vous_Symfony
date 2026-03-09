@@ -42,7 +42,12 @@ class Comments
     #[ORM\ManyToOne(inversedBy: 'replies', targetEntity: 'Comments')]
     #[ORM\JoinColumn(name: 'parent_id', referencedColumnName: 'id', nullable: true)]
     private $parent;
-    
+
+    public function __toString(): string
+    {
+        return ($this->User ?? '') . ' — ' . substr($this->comment ?? '', 0, 50);
+    }
+
     #[ORM\OneToMany(targetEntity: Comments::class , mappedBy: 'parent', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[Groups(['api_posts_read'])]
     private $replies;

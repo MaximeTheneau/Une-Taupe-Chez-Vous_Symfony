@@ -1,33 +1,43 @@
-<?php 
+<?php
 namespace App\Service;
 
-use Imagine\Gd\Imagine;
+use Imagine\Image\ImagineInterface;
 use Imagine\Image\Box;
-use Imagine\Image\Point;
-
-use Symfony\Component\HttpFoundation\File\Exception\FileException;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Imagine\Image\ImageInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ContainerBagInterface;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\String\Slugger\SluggerInterface;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
-use Cloudinary\Configuration\Configuration;
-use Cloudinary\Api\Upload\UploadApi;
-use Symfony\Component\HttpClient\HttpClient;
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
 
 class ImageOptimizer
 {
-    private $slugger;
+    private const ALLOWED_MIME_TYPES = [
+        'image/jpeg',
+        'image/png',
+        'image/avif',
+        'image/webp',
+    ];
+
+    private const MAX_WIDTH  = 1210;
+    private const MAX_HEIGHT = 1210;
+    private const S3_FOLDER  = '';
+
     private $params;
+    private $slugger;
     private $serializer;
     private $photoDir;
     private $projectDir;
-    private $imagine;
-    private $uploadApi;
+    private $domainImg;
+    private $s3Key;
+    private $s3Secret;
+    private $s3Region;
+    private $s3Bucket;
+    private $s3BucketFront;
+    private $s3Version;
+    private $s3Client;
+    private ?ImagineInterface $imagine = null;
     private const IMAGE_SIZES = [320, 640, 750, 828, 1080, 1200, 1920, 2048, 3840];
 
     public function __construct(
@@ -35,7 +45,7 @@ class ImageOptimizer
         ContainerBagInterface $params,
         SerializerInterface $serializer,
         )
-        {      
+        {
             $this->slugger = $slugger;
             $this->params = $params;
             $this->serializer = $serializer;
@@ -56,105 +66,195 @@ class ImageOptimizer
                     'secret' => $this->s3Secret,
                 ],
             ]);
-            $this->imagine = new Imagine();
-
-            // $this->uploadApi = Configuration::instance();
-            // $this->uploadApi->cloud->cloudName = $_ENV['CLOUD_NAME'];
-            // $this->uploadApi->cloud->apiKey = $_ENV['CLOUD_API_KEY'];
-            // $this->uploadApi->cloud->apiSecret = $_ENV['CLOUD_API_SECRET'];
-            // $this->uploadApi->url->secure = true;
-            // $this->uploadApi = new UploadApi();
+            // Driver initialisé à la première utilisation (lazy) pour ne pas bloquer le boot Symfony.
     }
 
-    public function setPicture( $brochureFile, $post, $slug ): void
-    {   
-        $localImagePath = $this->photoDir . $slug . '.webp'; // Path Local Image
+private function getImagine(): \Imagine\Image\ImagineInterface
+{
+    if ($this->imagine === null) {
+        if (extension_loaded('imagick')) {
+            $this->imagine = new \Imagine\Imagick\Imagine();
+        } elseif (extension_loaded('gd')) {
+            // C'est ici que GD sera utilisé
+            $this->imagine = new \Imagine\Gd\Imagine();
+        } else {
+            throw new \RuntimeException(
+                'Aucun driver image disponible. Installez l\'extension PHP "imagick" ou "gd".'
+            );
+        }
+    }
 
-        $imageS3Path = $this->s3Bucket . '/' . $slug . '.webp'; // Path S3 Image
+    return $this->imagine;
+}
 
-        $img = $this->imagine->open($brochureFile);
+    /**
+     * Vérifie que le fichier est bien une image autorisée (jpg, png, avif, webp).
+     * Utilise finfo sur le contenu réel du fichier, pas l'extension.
+     *
+     * @throws \InvalidArgumentException si le type MIME n'est pas autorisé
+     */
+    private function validateImageType(File $file): void
+    {
+        $finfo    = new \finfo(\FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file->getRealPath());
 
-        $img->strip()->save($localImagePath, ['webp_quality' => 80]);
+        if (!in_array($mimeType, self::ALLOWED_MIME_TYPES, true)) {
+            throw new \InvalidArgumentException(sprintf(
+                'Type de fichier non autorisé : "%s". Seuls jpg, png, avif et webp sont acceptés.',
+                $mimeType
+            ));
+        }
+    }
 
-        if ($post->getImgPost() !== null) {
-            
-            $bucketDomain = $_ENV['DOMAIN_IMG']; 
-            $key = str_replace($bucketDomain, "", $post->getImgPost());
+    /**
+     * Redimensionne l'image à 100×100 max (proportionnel) et la convertit en webp.
+     */
+    private function resizeAndSave(\Imagine\Image\ImageInterface $img, string $localPath): void
+    {
+        $size = $img->getSize();
+
+        if ($size->getWidth() > self::MAX_WIDTH || $size->getHeight() > self::MAX_HEIGHT) {
+            $img = $img->thumbnail(
+                new Box(self::MAX_WIDTH, self::MAX_HEIGHT),
+                ImageInterface::THUMBNAIL_INSET
+            );
+        }
+
+        $img->strip()->save($localPath, ['webp_quality' => 80, 'webp_lossless' => false]);
+    }
+
+    public function setPicture(File $brochureFile, $company, $slug): void
+    {
+        $this->validateImageType($brochureFile);
+
+        $localImagePath = $_ENV['IMG_DIR'] . $slug . '.webp';
+        $s3Key          = self::S3_FOLDER . $slug . '.webp';
+
+        $img = $this->getImagine()->open($brochureFile);
+        $this->resizeAndSave($img, $localImagePath);
+
+        // Suppression de l'ancienne image si elle existe
+        if ($company->getImg() !== null) {
+            $bucketDomain = $_ENV['DOMAIN_IMG'];
+            $oldKey = str_replace($bucketDomain, '', $company->getImg());
 
             $this->s3Client->deleteObject([
                 'Bucket' => $this->s3Bucket,
-                'Key'    => $key,
+                'Key'    => $oldKey,
             ]);
 
-            $this->s3Client->deleteMatchingObjects($this->s3BucketFront, $slug . '.webp');
+            $this->s3Client->deleteMatchingObjects($this->s3BucketFront, self::S3_FOLDER . $slug . '.webp');
 
             $this->s3Client->deleteObject([
                 'Bucket' => $this->s3BucketFront,
-                'Key'    => $post->getImgPost(),
+                'Key'    => $company->getImg(),
             ]);
 
-            $slug = $slug . '-' . rand(0, 10);
+            $slug  = $slug . '-' . rand(0, 10);
+            $s3Key = self::S3_FOLDER . $slug . '.webp';
 
             $this->s3Client->putObject([
                 'Bucket' => $this->s3Bucket,
-                'Key'    => $slug . '.webp',
+                'Key'    => $s3Key,
                 'Body'   => fopen($localImagePath, 'rb'),
             ]);
         }
-        
-        // Srcset Image
+
+        // Srcset
+        $img    = $this->getImagine()->open($localImagePath);
+        $imgUrl = $this->domainImg . $s3Key;
         $srcset = '';
-        
-        $imgUrl = $this->domainImg . $slug . '.webp';
+
         foreach (self::IMAGE_SIZES as $size) {
-            if($size <= $img->getSize()->getWidth()) {
+            if ($size <= $img->getSize()->getWidth()) {
                 $srcset .= $imgUrl . '?width=' . $size . ' ' . $size . 'w,';
             }
         }
-        
         $srcset .= $imgUrl . ' ' . $img->getSize()->getWidth() . 'w';
-        
+
         try {
             $this->s3Client->putObject([
                 'Bucket' => $this->s3Bucket,
-                'Key'    => $slug . '.webp',
+                'Key'    => $s3Key,
                 'Body'   => fopen($localImagePath, 'rb'),
             ]);
-            
-            $post->setImgPost($imgUrl); // Url Image
-            $post->setSrcset($srcset); // Srcset Image
-            $post->setImgWidth($img->getSize()->getWidth()); // Width Image
-            $post->setImgHeight($img->getSize()->getHeight()); // Height Image
+
+            $company->setImg($imgUrl);
+            $company->setSrcset($srcset);
+            $company->setImgWidth($img->getSize()->getWidth());
+            $company->setImgHeight($img->getSize()->getHeight());
 
         } catch (AwsException $e) {
             echo $e->getMessage();
         } finally {
-            unlink($localImagePath);
+            if (file_exists($localImagePath)) {
+                unlink($localImagePath);
+            }
         }
-
     }
 
-    public function deletedPicture($slug): void
+    public function uploadToS3(File $file, string $slug): string
     {
+        $this->validateImageType($file);
+
+        $localImagePath = $_ENV['IMG_DIR'] . $slug . '.webp';
+        $s3Key          = self::S3_FOLDER . $slug . '.webp';
+
+        $img = $this->getImagine()->open($file);
+        $this->resizeAndSave($img, $localImagePath);
+
+        try {
+            $this->s3Client->putObject([
+                'Bucket' => $this->s3Bucket,
+                'Key'    => $s3Key,
+                'Body'   => fopen($localImagePath, 'rb'),
+            ]);
+        } catch (AwsException $e) {
+            throw $e;
+        } finally {
+            if (file_exists($localImagePath)) {
+                unlink($localImagePath);
+            }
+        }
+
+        return $this->domainImg . $s3Key;
+    }
+
+    /**
+     * Supprime une image depuis son URL complète (ex: https://cdn.example.com/logos/slug.webp).
+     * Utilisé pour la suppression depuis le CRUD admin.
+     */
+    public function clearImage(string $imgUrl): void
+    {
+        $key = str_replace($this->domainImg, '', $imgUrl);
+
+        try {
+            $this->s3Client->deleteObject(['Bucket' => $this->s3Bucket, 'Key' => $key]);
+            $this->s3Client->deleteMatchingObjects($this->s3BucketFront, $key);
+            $this->s3Client->deleteObject(['Bucket' => $this->s3BucketFront, 'Key' => $key]);
+        } catch (AwsException $e) {
+            echo $e->getMessage();
+        }
+    }
+
+    public function deletedPicture(string $slug): void
+    {
+        $s3Key = self::S3_FOLDER . $slug . '.webp';
+
         try {
             $this->s3Client->deleteObject([
                 'Bucket' => $this->s3Bucket,
-                'Key'    => $slug . '.webp',
+                'Key'    => $s3Key,
             ]);
 
-            $this->s3Client->deleteMatchingObjects($this->s3BucketFront, $slug . '.webp');
+            $this->s3Client->deleteMatchingObjects($this->s3BucketFront, $s3Key);
 
             $this->s3Client->deleteObject([
                 'Bucket' => $this->s3BucketFront,
-                'Key'    => $slug . '.webp',
+                'Key'    => $s3Key,
             ]);
         } catch (AwsException $e) {
             echo $e->getMessage();
         }
-      
     }
-
 }
-
-
-

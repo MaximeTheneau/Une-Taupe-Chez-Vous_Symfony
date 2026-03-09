@@ -25,6 +25,11 @@ class Keyword
     #[ORM\ManyToMany(targetEntity: Posts::class, inversedBy: 'keywords')]
     private Collection $posts;
 
+    public function __toString(): string
+    {
+        return $this->name ?? '';
+    }
+
     public function __construct()
     {
         $this->posts = new ArrayCollection();
