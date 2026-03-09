@@ -69,7 +69,7 @@ class PostsController extends ApiController
     }
 
     #[Route('&subcategory={slug}', name: 'subcategory', methods: ['GET'])]
-    public function subcategory(PostsRepository $postsRepository, Subcategory $subcategory): JsonResponse
+    public function subcategory(PostsRepository $postsRepository, #[MapEntity(mapping: ['slug' => 'slug'])] Subcategory $subcategory): JsonResponse
     {
         $posts = $postsRepository->findBy(['subcategory' => $subcategory, 'draft' => false],  ['createdAt' => 'DESC']);
 
@@ -88,7 +88,7 @@ class PostsController extends ApiController
     }
 
     #[Route('&limit=3&category={name}', name: 'category', methods: ['GET'])]
-    public function limit(PostsRepository $postsRepository, Category $category): JsonResponse
+    public function limit(PostsRepository $postsRepository, #[MapEntity(mapping: ['name' => 'name'])] Category $category): JsonResponse
     {
         $posts = $postsRepository->findBy(['category' => $category, 'draft' => false], ['createdAt' => 'ASC'], 3);
 
@@ -169,7 +169,7 @@ class PostsController extends ApiController
     }
 
     #[Route('/thumbnail/{slug}', name: 'thumbnail', methods: ['GET'])]
-    public function thumbnail(PostsRepository $postsRepository, Posts $posts = null ): JsonResponse
+    public function thumbnail(PostsRepository $postsRepository, #[MapEntity(mapping: ['slug' => 'slug'])] Posts $posts = null ): JsonResponse
     {
 
         if ($posts === null)
@@ -216,7 +216,7 @@ class PostsController extends ApiController
     }
 
      #[Route('/blog/{slug}', name: 'readBlog', methods: ['GET'])]
-    public function readArticles(EntityManagerInterface $em, Posts $post, CommentsRepository $commentRepository)
+    public function readArticles(EntityManagerInterface $em, #[MapEntity(mapping: ['slug' => 'slug'])] Posts $post, CommentsRepository $commentRepository)
     {
         $comments = $commentRepository->findNonReplyComments($post->getId());
 
@@ -298,44 +298,36 @@ class PostsController extends ApiController
     }
 
     #[Route('&filter=keyword&limit=3&id={id}', name: 'keyword', methods: ['GET'])]
-    public function postsFilterKeyword(PostsRepository $postsRepository, KeywordRepository $keywordRepository,  int $id): JsonResponse
+    public function postsFilterKeyword(PostsRepository $postsRepository, int $id): JsonResponse
     {
-        $responsePosts = [];
-
         $post = $postsRepository->find($id);
-
         $postId = $post->getId();
         $postsKeyword = $post->getKeywords()->getValues();
-        if($postsKeyword === [])
-        {
-            $responsePosts = $postsRepository->findByCategorySlug($post->getCategory()->getSlug(), 3);
-            return $this->json(
-                $responsePosts,
-                Response::HTTP_OK,
-                [],
-                [
-                    "groups" =>
-                    [
-                        "api_posts_keyword"
-                    ]
-                ]
-            );
+
+        if ($postsKeyword === []) {
+            $posts = $postsRepository->findByCategorySlug($post->getCategory()->getSlug(), 3);
+            return $this->json($this->mapPostsToArray($posts));
         }
 
+        $filteredPosts = [];
+        $addedPostIds = [];
+
         foreach ($postsKeyword as $keyword) {
-            $postsKeyword = $keyword->getPosts();
-            $filteredPostId = $postsKeyword->filter(function ($otherPost) use ($postId) {
+            $keywordPosts = $keyword->getPosts();
+            $filteredPostId = $keywordPosts->filter(function ($otherPost) use ($postId) {
                 return $otherPost->getId() != $postId && !$otherPost->isDraft() && $otherPost->getSlug() !== 'Accueil';
             });
 
             foreach ($filteredPostId as $filteredPost) {
-                $filteredPosts[] = $filteredPost;
+                $filteredPostObjectId = $filteredPost->getId();
+                if (!in_array($filteredPostObjectId, $addedPostIds)) {
+                    $filteredPosts[] = $filteredPost;
+                    $addedPostIds[] = $filteredPostObjectId;
+                }
             }
         }
 
-        $sortedPosts = $filteredPosts;
-
-        usort($sortedPosts, function ($a, $b) {
+        usort($filteredPosts, function ($a, $b) {
             $updatedAtA = $a->getUpdatedAt();
             $updatedAtB = $b->getUpdatedAt();
 
@@ -346,29 +338,31 @@ class PostsController extends ApiController
             } elseif (!$updatedAtA && $updatedAtB) {
                 return 1;
             } else {
-                $createdAtA = $a->getCreatedAt();
-                $createdAtB = $b->getCreatedAt();
-                return $createdAtB <=> $createdAtA;
+                return $b->getCreatedAt() <=> $a->getCreatedAt();
             }
         });
 
-        if (count($sortedPosts) > 3) {
-            $responsePosts = array_slice($sortedPosts, 0, 3);
+        if (count($filteredPosts) >= 3) {
+            $posts = array_slice($filteredPosts, 0, 3);
         } else {
-            $responsePosts = $postsRepository->findByCategorySlug($post->getCategory()->getSlug(), 3);
-
+            $posts = $postsRepository->findByCategorySlug($post->getCategory()->getSlug(), 3);
         }
-        return $this->json(
-            $responsePosts,
-            Response::HTTP_OK,
-            [],
-            [
-                "groups" =>
-                [
-                    "api_posts_keyword"
-                ]
-            ]
-        );
+
+        return $this->json($this->mapPostsToArray($posts));
+    }
+
+    private function mapPostsToArray(array $posts): array
+    {
+        return array_map(fn($p) => [
+            'id'          => $p->getId(),
+            'title'       => $p->getTitle(),
+            'slug'        => $p->getSlug(),
+            'altImg'      => $p->getAltImg(),
+            'imgPost'     => $p->getImgPost(),
+            'url'         => $p->getUrl(),
+            'category'    => $p->getCategory() ? ['name' => $p->getCategory()->getName()] : null,
+            'subcategory' => $p->getSubcategory() ? ['name' => $p->getSubcategory()->getName(), 'slug' => $p->getSubcategory()->getSlug()] : null,
+        ], $posts);
     }
 
 #[Route('/related/{slug}', name: 'related', methods: ['GET'])]
