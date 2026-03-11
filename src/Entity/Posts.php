@@ -7,12 +7,14 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 
 #[ORM\Entity(repositoryClass: PostsRepository::class)]
 #[Groups(['api_posts_keyword' ])]
+#[Gedmo\Loggable(logEntryClass: PostLogEntry::class)]
 class Posts
 {
     #[ORM\Id]
@@ -23,22 +25,27 @@ class Posts
 
     #[ORM\Column(length: 70)]
     #[Groups(['api_posts_read', 'api_posts_home'])]
+    #[Gedmo\Versioned]
     private ?string $heading = null;
 
     #[ORM\Column(length: 70, unique: true, type: Types::STRING)]
     #[Groups(['api_posts_home', 'api_posts_read', 'api_posts_desc', 'api_posts_category', 'api_posts_subcategory', 'api_posts_articles_desc', 'api_posts_all', 'api_posts_keyword' ])]
+    #[Gedmo\Versioned]
     private ?string $title = null;
 
     #[ORM\Column(length: 1000)]
     #[Groups(['api_posts_read', 'api_posts_home', 'api_posts_category'])]
+    #[Gedmo\Versioned]
     private ?string $metaDescription = null;
 
     #[ORM\Column(length: 70, unique: true, type: Types::STRING)]
     #[Groups(['api_posts_home', 'api_posts_read', 'api_posts_desc', 'api_posts_category', 'api_posts_subcategory', 'api_posts_all', 'api_posts_keyword', 'api_posts_sitemap' ])]
+    #[Gedmo\Versioned]
     private ?string $slug = null;
 
     #[ORM\Column(length: 5000, nullable: true, type: Types::STRING)]
     #[Groups(['api_posts_read', 'api_posts_home'])]
+    #[Gedmo\Versioned]
     private ?string $contents = null;
 
     #[ORM\Column]
@@ -58,6 +65,7 @@ class Posts
     private Collection $listPosts;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Gedmo\Versioned]
     private ?string $links = null;
 
     #[ORM\OneToMany(mappedBy: 'posts', targetEntity: ParagraphPosts::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
@@ -73,10 +81,12 @@ class Posts
 
     #[ORM\Column(length: 125, nullable: true)]
     #[Groups(['api_posts_category', 'api_posts_home', 'api_posts_read',  'api_posts_desc', 'api_posts_keyword', 'api_posts_all', 'api_posts_category', 'api_posts_subcategory'])]
+    #[Gedmo\Versioned]
     private ?string $altImg = null;
 
     #[ORM\Column(length: 500, nullable: true)]
     #[Groups(['api_posts_read', 'api_posts_all',  'api_posts_desc', 'api_posts_subcategory', 'api_posts_category', 'api_posts_keyword', 'api_posts_sitemap', 'api_posts_home' ])]
+    #[Gedmo\Versioned]
     private ?string $imgPost = null;
 
     private ?File $imageFile = null;
@@ -96,10 +106,12 @@ class Posts
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['api_posts_all', 'api_posts_category', 'api_posts_desc', 'api_posts_subcategory', 'api_posts_read', 'api_posts_keyword', 'api_posts_sitemap', 'api_posts_home'  ])]
+    #[Gedmo\Versioned]
     private ?string $url = null;
 
     #[ORM\Column(length: 5000)]
     #[Groups(['api_posts_read', 'api_posts_home'])]
+    #[Gedmo\Versioned]
     private ?string $contentsHTML = null;
 
     #[ORM\Column(nullable: true)]
