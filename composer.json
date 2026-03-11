@@ -14,7 +14,7 @@
         "doctrine/doctrine-migrations-bundle": "^3.3",
         "doctrine/orm": "^3.1",
         "easycorp/easyadmin-bundle": "*",
-        "friendsofsymfony/ckeditor-bundle": "^2.5",
+        "friendsofsymfony/ckeditor-bundle": "^2.8",
         "lexik/jwt-authentication-bundle": "*",
         "liip/imagine-bundle": "^2.11",
         "michelf/php-markdown": "^2.0",

@@ -1,31 +1,30 @@
-document.addEventListener('trix-attachment-add', function (event) {
-    var attachment = event.attachment;
-    if (attachment.file) {
-        uploadFile(attachment);
-    }
-});
+// CKEditor 4 image upload listener for /admin/upload-image
+if (window.CKEDITOR) {
+    CKEDITOR.on('instanceCreated', function (event) {
+        var editor = event.editor;
 
-function uploadFile(attachment) {
-    var file = attachment.file;
-    var formData = new FormData();
-    formData.append('upload', file);
+        editor.on('fileUploadResponse', function (evt) {
+            var data = evt.data;
+            var xhr = data.fileLoader.xhr;
 
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/admin/upload-image', true);
-
-    xhr.upload.addEventListener('progress', function (event) {
-        if (event.lengthComputable) {
-            var progress = event.loaded / event.total * 100;
-            attachment.setUploadProgress(progress);
-        }
+            if (xhr.status === 200) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.uploaded === 1) {
+                        data.url = response.url;
+                        data.fileName = response.fileName;
+                    } else {
+                        evt.cancel();
+                        data.message = (response.error && response.error.message)
+                            ? response.error.message
+                            : 'Upload failed';
+                    }
+                } catch (e) {
+                    evt.cancel();
+                    data.message = 'Invalid server response';
+                }
+                evt.stop();
+            }
+        });
     });
-
-    xhr.addEventListener('load', function () {
-        if (xhr.status === 200) {
-            var data = JSON.parse(xhr.responseText);
-            attachment.setAttributes({ url: data.url, href: data.url });
-        }
-    });
-
-    xhr.send(formData);
 }

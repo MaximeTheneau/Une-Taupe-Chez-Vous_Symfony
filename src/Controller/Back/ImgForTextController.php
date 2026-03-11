@@ -49,14 +49,22 @@ class ImgForTextController extends AbstractController
         $file = $request->files->get('upload');
 
         if (!$file) {
-            return new JsonResponse(['error' => 'Aucun fichier téléchargé'], 400);
+            return new JsonResponse([
+                'uploaded' => 0,
+                'error' => ['message' => 'Aucun fichier téléchargé'],
+            ], 400);
         }
 
         $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $ext  = $file->guessExtension() ?? 'webp';
         $slug = $slugger->slug($originalFilename)->lower() . '-' . uniqid();
 
-        $url = $this->imageOptimizer->uploadToS3($file, $slug);
+        $url = $this->imageOptimizer->uploadRawToS3($file, $slug);
 
-        return new JsonResponse(['url' => $url]);
+        return new JsonResponse([
+            'uploaded' => 1,
+            'fileName' => $slug . '.' . $ext,
+            'url'      => $url,
+        ]);
     }
 }

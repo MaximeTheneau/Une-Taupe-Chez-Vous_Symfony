@@ -36,6 +36,7 @@ use DateTime as GlobalDateTime;
 use IntlDateFormatter;
 use DOMDocument;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
+use FOS\CKEditorBundle\Form\Type\CKEditorType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -82,6 +83,7 @@ class PostsCrudController extends AbstractCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
+            ->addFormTheme('@FOSCKEditor/Form/ckeditor_widget.html.twig')
             ->setEntityLabelInSingular('Post')
             ->setEntityLabelInPlural('Posts')
             ->setSearchFields(['title', 'heading', 'slug', 'metaDescription'])
@@ -131,6 +133,13 @@ class PostsCrudController extends AbstractCrudController
             ->setColumns(6);
 
         yield TextEditorField::new('contents', 'Contenu')
+            ->setFormType(CKEditorType::class)
+            ->setFormTypeOptions([
+                'config_name' => 'default',
+                'config' => [
+                    'toolbar' => 'full_custom',
+                ],
+            ])
             ->setColumns(12);
 
         yield AssociationField::new('category', 'Catégorie')->setColumns(6);
