@@ -22,13 +22,21 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use App\Entity\PostLogEntry;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use DateTime as GlobalDateTime;
 use IntlDateFormatter;
 use DOMDocument;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
+use FOS\CKEditorBundle\Form\Type\CKEditorType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -40,7 +48,8 @@ class PostsCrudController extends AbstractCrudController
     private UrlGeneratorService $urlGeneratorService;
     private MessageBusInterface $messageBus;
     private EntityManagerInterface $entityManager;
-    private string $projectDir;
+    private AdminUrlGenerator $adminUrlGenerator;
+    private CsrfTokenManagerInterface $csrfTokenManager;
 
     public function __construct(
         SluggerInterface $slugger,
@@ -48,14 +57,16 @@ class PostsCrudController extends AbstractCrudController
         UrlGeneratorService $urlGeneratorService,
         MessageBusInterface $messageBus,
         EntityManagerInterface $entityManager,
-        string $projectDir
+        AdminUrlGenerator $adminUrlGenerator,
+        CsrfTokenManagerInterface $csrfTokenManager,
     ) {
         $this->slugger = $slugger;
         $this->imageOptimizer = $imageOptimizer;
         $this->urlGeneratorService = $urlGeneratorService;
         $this->messageBus = $messageBus;
         $this->entityManager = $entityManager;
-        $this->projectDir = $projectDir;
+        $this->adminUrlGenerator = $adminUrlGenerator;
+        $this->csrfTokenManager = $csrfTokenManager;
     }
 
     public static function getEntityFqcn(): string
@@ -72,6 +83,7 @@ class PostsCrudController extends AbstractCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
+            ->addFormTheme('@FOSCKEditor/Form/ckeditor_widget.html.twig')
             ->setEntityLabelInSingular('Post')
             ->setEntityLabelInPlural('Posts')
             ->setSearchFields(['title', 'heading', 'slug', 'metaDescription'])
@@ -80,8 +92,14 @@ class PostsCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
+        $historyAction = Action::new('showHistory', 'Historique', 'fa fa-history')
+            ->linkToRoute('admin_posts_history', static fn (Posts $post): array => ['id' => $post->getId()])
+            ->addCssClass('btn btn-secondary btn-sm');
+
         return $actions
-            ->add(Crud::PAGE_INDEX, Action::DETAIL);
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_DETAIL, $historyAction)
+            ->add(Crud::PAGE_EDIT, $historyAction);
     }
 
     public function configureFields(string $pageName): iterable
@@ -115,6 +133,13 @@ class PostsCrudController extends AbstractCrudController
             ->setColumns(6);
 
         yield TextEditorField::new('contents', 'Contenu')
+            ->setFormType(CKEditorType::class)
+            ->setFormTypeOptions([
+                'config_name' => 'default',
+                'config' => [
+                    'toolbar' => 'full_custom',
+                ],
+            ])
             ->setColumns(12);
 
         yield AssociationField::new('category', 'Catégorie')->setColumns(6);
@@ -378,6 +403,110 @@ class PostsCrudController extends AbstractCrudController
             $paragraph->setLink(null);
             $paragraph->setLinkSubtitle(null);
         }
+    }
+
+    #[Route('/admin/posts/{id}/history', name: 'admin_posts_history')]
+    public function showHistory(Request $request): Response
+    {
+        // Résout l'id depuis la route Symfony directe OU depuis le param EA (entityId)
+        $id = $request->attributes->get('id') ?? $request->query->get('entityId');
+        $post = $this->entityManager->getRepository(Posts::class)->find($id);
+
+        if (!$post) {
+            throw $this->createNotFoundException('Post not found.');
+        }
+
+        $repo = $this->entityManager->getRepository(PostLogEntry::class);
+
+        $postLogs = $repo->findBy(
+            ['objectClass' => Posts::class, 'objectId' => (string) $post->getId()],
+            ['version' => 'DESC']
+        );
+
+        $paragraphLogs = [];
+        foreach ($post->getParagraphPosts() as $paragraph) {
+            if ($paragraph->getId()) {
+                $logs = $repo->findBy(
+                    ['objectClass' => ParagraphPosts::class, 'objectId' => (string) $paragraph->getId()],
+                    ['version' => 'DESC']
+                );
+                $paragraphLogs[$paragraph->getId()] = [
+                    'subtitle' => $paragraph->getSubtitle(),
+                    'logs' => $logs,
+                ];
+            }
+        }
+
+        $detailUrl = $this->adminUrlGenerator
+            ->setController(self::class)
+            ->setAction(Action::DETAIL)
+            ->setEntityId($post->getId())
+            ->generateUrl();
+
+        return $this->render('admin/posts/history.html.twig', [
+            'post' => $post,
+            'postLogs' => $postLogs,
+            'paragraphLogs' => $paragraphLogs,
+            'detailUrl' => $detailUrl,
+        ]);
+    }
+
+    #[Route('/admin/posts/{id}/revert/{version}', name: 'admin_posts_revert', methods: ['POST'])]
+    public function revertPost(int $id, int $version, Request $request): Response
+    {
+        if (!$this->csrfTokenManager->isTokenValid(new CsrfToken('revert_post_' . $id, $request->request->get('_token')))) {
+            throw $this->createAccessDeniedException('Token CSRF invalide.');
+        }
+
+        $post = $this->entityManager->getRepository(Posts::class)->find($id);
+
+        if (!$post) {
+            throw $this->createNotFoundException('Post introuvable.');
+        }
+
+        $repo = $this->entityManager->getRepository(PostLogEntry::class);
+        $repo->revert($post, $version);
+        $this->entityManager->flush();
+
+        $this->addFlash('success', sprintf('Post restauré à la version %d.', $version));
+
+        return $this->redirect(
+            $this->adminUrlGenerator
+                ->setController(self::class)
+                ->setAction(Action::EDIT)
+                ->setEntityId($id)
+                ->generateUrl()
+        );
+    }
+
+    #[Route('/admin/paragraphs/{id}/revert/{version}', name: 'admin_paragraph_revert', methods: ['POST'])]
+    public function revertParagraph(int $id, int $version, Request $request): Response
+    {
+        if (!$this->csrfTokenManager->isTokenValid(new CsrfToken('revert_paragraph_' . $id, $request->request->get('_token')))) {
+            throw $this->createAccessDeniedException('Token CSRF invalide.');
+        }
+
+        $paragraph = $this->entityManager->getRepository(ParagraphPosts::class)->find($id);
+
+        if (!$paragraph) {
+            throw $this->createNotFoundException('Paragraphe introuvable.');
+        }
+
+        $postId = $paragraph->getPosts()?->getId();
+
+        $repo = $this->entityManager->getRepository(PostLogEntry::class);
+        $repo->revert($paragraph, $version);
+        $this->entityManager->flush();
+
+        $this->addFlash('success', sprintf('Paragraphe restauré à la version %d.', $version));
+
+        return $this->redirect(
+            $this->adminUrlGenerator
+                ->setController(self::class)
+                ->setAction(Action::EDIT)
+                ->setEntityId($postId)
+                ->generateUrl()
+        );
     }
 
     private function createSlug(string $inputString): string

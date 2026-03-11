@@ -5,6 +5,7 @@ namespace App\Controller\Admin;
 use App\Entity\ParagraphPosts;
 use App\Service\ImageOptimizer;
 use App\Service\MarkdownProcessor;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
@@ -12,6 +13,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
+use FOS\CKEditorBundle\Form\Type\CKEditorType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\String\Slugger\SluggerInterface;
@@ -41,9 +43,16 @@ class ParagraphPostsCrudController extends AbstractCrudController
         return ParagraphPosts::class;
     }
 
+    public function configureAssets(Assets $assets): Assets
+    {
+        return $assets
+            ->addAssetMapperEntry('trix-upload');
+    }
+
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
+            ->addFormTheme('@FOSCKEditor/Form/ckeditor_widget.html.twig')
             ->setEntityLabelInSingular('Paragraphe')
             ->setEntityLabelInPlural('Paragraphes')
             ->setSearchFields(['subtitle', 'slug'])
@@ -66,6 +75,13 @@ class ParagraphPostsCrudController extends AbstractCrudController
             ->setColumns(12);
 
         yield TextEditorField::new('paragraph', 'Contenu')
+            ->setFormType(CKEditorType::class)
+            ->setFormTypeOptions([
+                'config_name' => 'default',
+                'config' => [
+                    'toolbar' => 'full_custom',
+                ],
+            ])
             ->setColumns(12);
 
         yield ImageField::new('imgPost', 'Image du paragraphe')
