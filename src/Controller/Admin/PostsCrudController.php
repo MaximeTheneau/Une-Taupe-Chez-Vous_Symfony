@@ -111,8 +111,12 @@ class PostsCrudController extends AbstractCrudController
             yield TextField::new('imgPost', 'Image')->setTemplatePath('admin/fields/image_url.html.twig');
             yield DateTimeField::new('createdAt', 'Date de création');
             yield DateTimeField::new('updatedAt', 'Mise à jour');
+            yield BooleanField::new('draft', 'Brouillon');
             return;
         }
+
+        yield BooleanField::new('draft', 'Brouillon')
+            ->setColumns(12);
 
         yield TextField::new('title', 'Titre (meta title)')
             ->setFormTypeOption('attr.maxlength', 70)

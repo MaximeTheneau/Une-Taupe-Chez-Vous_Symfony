@@ -48,7 +48,7 @@ class CommentsCrudController extends AbstractCrudController
         yield BooleanField::new('accepted', 'Accepté');
         yield DateTimeField::new('createdAt', 'Date de création')
             ->hideOnForm();
-        yield AssociationField::new('commentsPosts', 'Post associé');
+        yield AssociationField::new('posts', 'Post associé');
         yield AssociationField::new('parent', 'Réponse à')
             ->hideOnIndex();
     }
