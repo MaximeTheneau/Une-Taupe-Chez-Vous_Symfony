@@ -264,7 +264,17 @@ class ContactController extends ApiController
 
     try {
         $mailer->send($email);
-    } catch (\Exception) {
+    } catch (\Exception $e) {
+        $errorEmail = (new TemplatedEmail())
+            ->to($_ENV['MAILER_TO_WEBMASTER'])
+            ->from($_ENV['MAILER_TO'])
+            ->subject('Erreur lors de l\'envoie de l\'email')
+            ->htmlTemplate('emails/error.html.twig')
+            ->context([
+                'error' => $e->getMessage(),
+            ]);
+        $mailer->send($errorEmail);
+
         return $this->json(
             [
                 "erreur" => "Erreur lors de l'envoie de l'email, veuillez réessayer plus tard",
