@@ -184,14 +184,21 @@ class ContactController extends ApiController
 
     $constraintViolationList = $validator->validate($data['siteWeb'], [
         new Assert\Url(),
+        new Assert\Regex(
+            pattern: '/^(https:\/\/)/',
+            message: "Le site web doit commencer par 'https://'",
+        ),
     ]);
 
-    $constraintViolationList = $validator->validate($data['siteWeb'], [
-        new Assert\Regex([
-            'pattern' => '/^(https:\/\/)/',
-            'message' => "Le site web doit commencer par 'https://'",
-        ]),
-    ]);
+    if (count($constraintViolationList) > 0) {
+        return $this->json(
+            [
+                "erreur" => $constraintViolationList[0]->getMessage(),
+                "code_error" => Response::HTTP_BAD_REQUEST
+            ],
+            Response::HTTP_BAD_REQUEST,
+        );
+    }
 
 
     if (
@@ -255,7 +262,17 @@ class ContactController extends ApiController
         ])
         ->replyTo($data['email']);
 
-    $mailer->send($email);
+    try {
+        $mailer->send($email);
+    } catch (\Exception) {
+        return $this->json(
+            [
+                "erreur" => "Erreur lors de l'envoie de l'email, veuillez réessayer plus tard",
+                "code_error" => Response::HTTP_INTERNAL_SERVER_ERROR
+            ],
+            Response::HTTP_INTERNAL_SERVER_ERROR
+        );
+    }
 
     return $this->json(
         [
