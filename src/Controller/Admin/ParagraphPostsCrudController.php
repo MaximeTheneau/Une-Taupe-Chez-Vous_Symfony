@@ -63,13 +63,6 @@ class ParagraphPostsCrudController extends AbstractCrudController
     {
         yield IdField::new('id')->hideOnForm();
 
-        // Masquer le champ posts dans le formulaire embarqué (CollectionField)
-        if ($pageName !== Crud::PAGE_EDIT && $pageName !== Crud::PAGE_NEW || !$this->isEmbedded()) {
-            yield AssociationField::new('posts', 'Post')
-                ->setRequired(true)
-                ->setColumns(12);
-        }
-
         yield TextField::new('subtitle', 'Sous-titre')
             ->setHelp('Max 170 caractères')
             ->setColumns(12);

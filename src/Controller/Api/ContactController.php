@@ -184,14 +184,21 @@ class ContactController extends ApiController
 
     $constraintViolationList = $validator->validate($data['siteWeb'], [
         new Assert\Url(),
+        new Assert\Regex(
+            pattern: '/^(https:\/\/)/',
+            message: "Le site web doit commencer par 'https://'",
+        ),
     ]);
 
-    $constraintViolationList = $validator->validate($data['siteWeb'], [
-        new Assert\Regex([
-            'pattern' => '/^(https:\/\/)/',
-            'message' => "Le site web doit commencer par 'https://'",
-        ]),
-    ]);
+    if (count($constraintViolationList) > 0) {
+        return $this->json(
+            [
+                "erreur" => $constraintViolationList[0]->getMessage(),
+                "code_error" => Response::HTTP_BAD_REQUEST
+            ],
+            Response::HTTP_BAD_REQUEST,
+        );
+    }
 
 
     if (

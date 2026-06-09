@@ -7,6 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\Criteria;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\Serializer\Attribute\Groups;
@@ -370,7 +371,9 @@ class Posts
      */
     public function getComments(): Collection
     {
-        return $this->comments;
+        return $this->comments->filter(function(Comments $comment) {
+                return $comment->isAccepted() === true;
+            });
     }
 
     public function addComment(Comments $comment): static
