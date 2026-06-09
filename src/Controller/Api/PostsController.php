@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller\Api;
 
 use App\Entity\Posts;
@@ -8,7 +10,6 @@ use App\Entity\Subcategory;
 use App\Repository\CommentsRepository;
 use App\Repository\PostsRepository;
 use App\Repository\SubcategoryRepository;
-use App\Repository\KeywordRepository;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -201,7 +202,7 @@ class PostsController extends ApiController
     public function read(EntityManagerInterface $em, string $slug)
     {
 
-        $post = $em->getRepository(Posts::class)->findOneBy(['slug' => $slug]);
+        $post = $em->getRepository(Posts::class)->findBy(['slug' => $slug, 'draft' => false]);
 
         return $this->json(
             $post,

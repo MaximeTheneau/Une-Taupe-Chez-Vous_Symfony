@@ -221,6 +221,40 @@ private function getImagine(): \Imagine\Image\ImagineInterface
     }
 
     /**
+     * Upload direct sur S3 sans traitement Imagine (pour les images de contenu éditeur).
+     * Accepte jpg, png, avif, webp et conserve le format d'origine.
+     */
+    public function uploadRawToS3(File $file, string $slug): string
+    {
+        $this->validateImageType($file);
+
+        $finfo    = new \finfo(\FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file->getRealPath());
+
+        $extensionMap = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/avif' => 'avif',
+            'image/webp' => 'webp',
+        ];
+        $ext   = $extensionMap[$mimeType] ?? 'webp';
+        $s3Key = self::S3_FOLDER . $slug . '.' . 'webp';
+
+        try {
+            $this->s3Client->putObject([
+                'Bucket'      => $this->s3Bucket,
+                'Key'         => $s3Key,
+                'Body'        => fopen($file->getRealPath(), 'rb'),
+                'ContentType' => $mimeType,
+            ]);
+        } catch (AwsException $e) {
+            throw $e;
+        }
+
+        return $this->domainImg . $s3Key;
+    }
+
+    /**
      * Supprime une image depuis son URL complète (ex: https://cdn.example.com/logos/slug.webp).
      * Utilisé pour la suppression depuis le CRUD admin.
      */

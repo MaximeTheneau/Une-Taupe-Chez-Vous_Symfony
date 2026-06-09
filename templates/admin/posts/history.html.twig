@@ -1,0 +1,169 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block page_title %}Historique — {{ post.title }}{% endblock %}
+
+{% block breadcrumb_items %}
+    <li class="breadcrumb-item">
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\PostsCrudController').setAction('index').generateUrl() }}">Posts</a>
+    </li>
+    <li class="breadcrumb-item active">Historique</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0">Historique — {{ post.title }}</h1>
+        <a href="{{ detailUrl }}" class="btn btn-secondary btn-sm">← Retour au post</a>
+    </div>
+
+    {# ── Post ────────────────────────────────────────────────────────────────────── #}
+    <h2 class="h4 mb-3">Post</h2>
+
+    {% if postLogs is empty %}
+        <div class="alert alert-info">Aucun historique enregistré pour ce post.</div>
+    {% else %}
+        <div class="table-responsive mb-5">
+            <table class="table table-bordered table-sm table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Version</th>
+                        <th>Date</th>
+                        <th>Utilisateur</th>
+                        <th>Action</th>
+                        <th>Champs modifiés</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in postLogs %}
+                    <tr>
+                        <td>v{{ log.version }}</td>
+                        <td class="text-nowrap">{{ log.loggedAt|date('d/m/Y H:i:s') }}</td>
+                        <td>{{ log.username ?? '—' }}</td>
+                        <td>
+                            {% if log.action == 'create' %}
+                                <span class="badge bg-success">Création</span>
+                            {% elseif log.action == 'update' %}
+                                <span class="badge bg-primary">Modification</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ log.action }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.data %}
+                                <ul class="list-unstyled mb-0">
+                                    {% for field, value in log.data %}
+                                    <li>
+                                        <strong>{{ field }}</strong> :
+                                        <span class="text-muted">
+                                            {% if value is iterable %}(collection)
+                                            {% elseif value|length > 120 %}{{ value|slice(0, 120) }}…
+                                            {% else %}{{ value }}
+                                            {% endif %}
+                                        </span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if not loop.first %}
+                                <form method="POST"
+                                    action="{{ path('admin_posts_revert', {id: post.id, version: log.version}) }}"
+                                    onsubmit="return confirm('Restaurer le post à la version {{ log.version }} ?')">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('revert_post_' ~ post.id) }}">
+                                    <button type="submit" class="btn btn-warning btn-sm text-nowrap">↩ v{{ log.version }}</button>
+                                </form>
+                            {% else %}
+                                <span class="badge bg-light text-dark border">Actuel</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {# ── Paragraphes ─────────────────────────────────────────────────────────────── #}
+    {% if paragraphLogs %}
+        <h2 class="h4 mb-3">Paragraphes <span class="badge bg-secondary">{{ paragraphLogs|length }}</span></h2>
+
+        {% for paragraphId, data in paragraphLogs %}
+            <h3 class="h6 mt-4">
+                <span class="text-muted">#{{ paragraphId }}</span> — {{ data.subtitle ?? '(sans titre)' }}
+            </h3>
+
+            {% if data.logs is empty %}
+                <div class="alert alert-light border">Aucune modification enregistrée.</div>
+            {% else %}
+                <div class=" mb-4">
+                    <table class="table table-bordered table-sm table-hover align-middle">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Version</th>
+                                <th>Date</th>
+                                <th>Utilisateur</th>
+                                <th>Action</th>
+                                <th>Champs modifiés</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in data.logs %}
+                            <tr>
+                                <td>v{{ log.version }}</td>
+                                <td class="text-nowrap">{{ log.loggedAt|date('d/m/Y H:i:s') }}</td>
+                                <td>{{ log.username ?? '—' }}</td>
+                                <td>
+                                    {% if log.action == 'create' %}
+                                        <span class="badge bg-success">Création</span>
+                                    {% elseif log.action == 'update' %}
+                                        <span class="badge bg-primary">Modification</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ log.action }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if log.data %}
+                                        <ul class="list-unstyled mb-0">
+                                            {% for field, value in log.data %}
+                                            <li>
+                                                <strong>{{ field }}</strong> :
+                                                <span class="text-muted">
+                                                    {% if value is iterable %}(collection)
+                                                    {% elseif value|length > 120 %}{{ value|slice(0, 120) }}…
+                                                    {% else %}{{ value }}
+                                                    {% endif %}
+                                                </span>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}—{% endif %}
+                                </td>
+                                <td>
+                                    {% if not loop.first %}
+                                        <form method="POST"
+                                            action="{{ path('admin_paragraph_revert', {id: paragraphId, version: log.version}) }}"
+                                            onsubmit="return confirm('Restaurer ce paragraphe à la version {{ log.version }} ?')">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('revert_paragraph_' ~ paragraphId) }}">
+                                            <button type="submit" class="btn btn-warning btn-sm text-nowrap">↩ v{{ log.version }}</button>
+                                        </form>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark border">Actuel</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">Ce post n'a pas encore de paragraphes.</div>
+    {% endif %}
+
+</div>
+
+{% endblock content %}

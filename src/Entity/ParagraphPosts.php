@@ -3,13 +3,13 @@
 namespace App\Entity;
 
 use App\Repository\ParagraphPostsRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 
 #[ORM\Entity(repositoryClass: ParagraphPostsRepository::class)]
+#[Gedmo\Loggable(logEntryClass: PostLogEntry::class)]
 class ParagraphPosts
 {
     #[ORM\Id]
@@ -20,10 +20,12 @@ class ParagraphPosts
 
     #[ORM\Column(length: 170, nullable: true)]
     #[Groups(['api_posts_read', 'api_posts_home'])]
+    #[Gedmo\Versioned]
     private ?string $subtitle = null;
 
     #[ORM\Column(length: 5000, nullable: true)]
     #[Groups(['api_posts_read', 'api_posts_home'])]
+    #[Gedmo\Versioned]
     private ?string $paragraph = null;
 
     #[ORM\ManyToOne(inversedBy: 'paragraphPosts', targetEntity: Posts::class)]
@@ -39,14 +41,17 @@ class ParagraphPosts
 
     #[ORM\Column(length: 50, nullable: true)]
     #[Groups(['api_posts_read'])]
+    #[Gedmo\Versioned]
     private ?string $slug = null;
 
     #[ORM\Column(length: 500, nullable: true)]
     #[Groups(['api_posts_read'])]
+    #[Gedmo\Versioned]
     private ?string $link = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['api_posts_read', 'api_posts_home'])]
+    #[Gedmo\Versioned]
     private ?string $linkSubtitle = null;
 
     #[ORM\ManyToOne(targetEntity: Posts::class)]

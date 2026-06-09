@@ -3,3 +3,29 @@
 twig:
     form_themes:
         - '@FOSCKEditor/Form/ckeditor_widget.html.twig'
+
+fos_ck_editor:
+    default_config: default
+    configs:
+        default:
+            toolbar: "full_custom"
+            uiColor: "#ffffff"
+            language: "fr"
+            format_tags: "p;h2;h3;h4;h5;h6;pre"
+            format_default: "h3"
+            imageUploadUrl: "/admin/upload-image"
+            filebrowserImageUploadUrl: "/admin/upload-image"
+            extraPlugins: "table,tabletools,tableselection,uploadimage"
+            versionCheck: false
+            uploadImage_supportedTypes: "image/webp"
+
+    toolbars:
+        configs:
+            full_custom:
+                - ["Bold", "Italic", "Underline", "Strike" ]
+                - ["NumberedList", "BulletedList", "-", "Outdent", "Indent"]
+                - ["Link", "Unlink"]
+                - ["Image", "Table", "HorizontalRule"]
+                - ["Format"]
+                - ["RemoveFormat", "Maximize"]
+                - ["Source"]
