@@ -205,7 +205,7 @@ class PostsController extends ApiController
         $post = $em->getRepository(Posts::class)->findBy(['slug' => $slug, 'draft' => false]);
 
         return $this->json(
-            $post,
+            $post[0],
             Response::HTTP_OK,
             [],
             [
