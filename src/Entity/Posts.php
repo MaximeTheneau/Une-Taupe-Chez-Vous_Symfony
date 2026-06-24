@@ -140,6 +140,9 @@ class Posts
     #[ORM\ManyToMany(targetEntity: self::class, mappedBy: 'relatedPosts')]
     private Collection $posts;
 
+    #[ORM\Column(nullable: true)]
+    private ?bool $sponsored = null;
+
     public function __toString(): string
     {
         return $this->title ?? '';
@@ -599,6 +602,18 @@ class Posts
         if ($this->posts->removeElement($post)) {
             $post->removeRelatedPost($this);
         }
+
+        return $this;
+    }
+
+    public function isSponsored(): ?bool
+    {
+        return $this->sponsored;
+    }
+
+    public function setSponsored(?bool $sponsored): static
+    {
+        $this->sponsored = $sponsored;
 
         return $this;
     }

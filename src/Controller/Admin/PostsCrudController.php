@@ -118,6 +118,10 @@ class PostsCrudController extends AbstractCrudController
         yield BooleanField::new('draft', 'Brouillon')
             ->setColumns(12);
 
+
+        yield BooleanField::new('sponsored', 'Article sponrisé')
+            ->setColumns(12);
+
         yield TextField::new('title', 'Titre (meta title)')
             ->setFormTypeOption('attr.maxlength', 70)
             ->setHelp('Max 70 caractères')
