@@ -141,6 +141,7 @@ class Posts
     private Collection $posts;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['api_posts_read'])]
     private ?bool $sponsored = null;
 
     public function __toString(): string
